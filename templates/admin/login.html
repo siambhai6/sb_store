@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — {{ settings.get('site_name', 'Topupjo') }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bree+Serif&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/icons.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <style>:root{--primary:{{ settings.get('primary_color','#db2d20') }};--accent:{{ settings.get('accent_color','#fbbf24') }};}</style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body class="admin-login-body">
+  <div class="admin-login-wrap">
+    <div class="admin-login-card">
+      <div class="login-logo">
+        {% if settings.get('logo') %}
+          <img src="{{ url_for('static', filename='uploads/' + settings.get('logo')) }}" alt="logo">
+        {% else %}<span class="mark"><span class="ico ico-bolt"></span></span>{% endif %}
+      </div>
+      <h1>{{ settings.get('site_name', 'Topupjo') }}</h1>
+      <p class="login-sub">Admin Control Panel</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for cat, msg in messages %}<div class="flash flash-{{ cat }}">{{ msg }}</div>{% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" class="login-form">
+        <label class="field">
+          <span>Email</span>
+          <input type="email" name="email" placeholder="admin@topupjo.com" required autofocus>
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" name="password" placeholder="••••••••" required>
+        </label>
+        <button type="submit" class="btn btn-primary btn-block">Sign In to Admin</button>
+      </form>
+      <div class="login-hint">Demo: <b>admin@topupjo.com</b> / <b>admin123</b></div>
+      <a href="{{ url_for('home') }}" class="login-back"><span class="ico ico-arrow-left"></span> Back to website</a>
+    </div>
+  </div>
+</body>
+</html>

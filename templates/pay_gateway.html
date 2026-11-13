@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ method.name }} Payment — {{ settings.get('site_name', 'Topupjo') }}{% endblock %}
+
+{% block content %}
+<div class="gw-page">
+  <div class="gw-shell">
+
+    <div class="gw-card" style="--mc: {{ method.color or '#cf2771' }}">
+      <div class="gw-head">
+        <span class="gw-logo">
+          {% if method.logo %}
+            <img src="{{ url_for('static', filename='uploads/' + method.logo) }}" alt="{{ method.name }}">
+          {% else %}
+            <span class="gw-logo-txt">{{ method.name }}</span>
+          {% endif %}
+        </span>
+        <h1>{{ method.name }}</h1>
+        <p class="gw-tag">Instant Payment · {{ settings.get('site_name', 'Topupjo') }}</p>
+      </div>
+
+      <div class="gw-body">
+        <div class="gw-info">
+          <div class="gw-info-row">
+            <span class="gw-info-label">পেমেন্ট নম্বর</span>
+            <span class="gw-info-value">
+              <strong id="payNumber">{{ method.account_number or '—' }}</strong>
+              {% if method.account_number %}
+              <button type="button" class="gw-copy" data-copy="{{ method.account_number }}">Copy</button>
+              {% endif %}
+            </span>
+          </div>
+          <div class="gw-info-row">
+            <span class="gw-info-label">এমাউন্ট</span>
+            <span class="gw-info-value"><strong>{{ total|taka }}</strong></span>
+          </div>
+          <div class="gw-info-row">
+            <span class="gw-info-label">প্রোডাক্ট</span>
+            <span class="gw-info-value">{{ product.name }} · {{ package.name }}</span>
+          </div>
+        </div>
+
+        {% if method.instructions %}
+        <div class="gw-desc">
+          <div class="gw-desc-title">পেমেন্ট নির্দেশনা</div>
+          <div class="gw-desc-text">{{ method.instructions|paydesc(total) }}</div>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('pay_verify', mid=method.id) }}" class="gw-form">
+          <label for="txnId">ট্রানজ্যাকশন নম্বর</label>
+          <input type="text" id="txnId" name="txn_id" placeholder="যেমন: 8N7A2K9XYZ" autocomplete="off" required>
+          <button type="submit" class="gw-verify">Verify &amp; Submit Order</button>
+        </form>
+
+        <p class="gw-note">পেমেন্ট সম্পন্ন করে ট্রানজ্যাকশন আইডি দিয়ে ভেরিফাই করুন। অর্ডারটি পেন্ডিং অবস্থায় জমা হবে।</p>
+      </div>
+    </div>
+
+    <div class="gw-actions">
+      <a href="{{ url_for('pay_methods') }}" class="gw-back">← অন্য পেমেন্ট মেথড</a>
+      <a href="{{ url_for('topup') }}" class="gw-cancel">বাতিল করুন</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-copy]');
+  if (!btn) return;
+  var text = btn.getAttribute('data-copy') || '';
+  var done = function () {
+    var old = btn.textContent;
+    btn.textContent = 'Copied';
+    btn.classList.add('is-copied');
+    setTimeout(function () { btn.textContent = old; btn.classList.remove('is-copied'); }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function () { fallback(text, done); });
+  } else {
+    fallback(text, done);
+  }
+});
+function fallback(text, done) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch (err) {}
+  document.body.removeChild(ta);
+}
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

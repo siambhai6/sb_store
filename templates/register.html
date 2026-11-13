@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Create Account — {{ settings.get('site_name', 'Topupjo') }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="auth-wrap">
+    <div class="auth-side">
+      <h2>Join {{ settings.get('site_name', 'Topupjo') }}</h2>
+      <p>Create your free account and start topping up in seconds.</p>
+      <div class="auth-feature"><div class="ic"><span class="ico ico-gift"></span></div><div><strong>Bonus Offers</strong><br><small style="opacity:.85">Exclusive deals for members</small></div></div>
+      <div class="auth-feature"><div class="ic"><span class="ico ico-card"></span></div><div><strong>Wallet</strong><br><small style="opacity:.85">Add money and pay instantly</small></div></div>
+      <div class="auth-feature"><div class="ic"><span class="ico ico-box"></span></div><div><strong>Order History</strong><br><small style="opacity:.85">Track every order easily</small></div></div>
+    </div>
+    <div class="auth-form">
+      <h2>Create Account</h2>
+      <p class="sub">It only takes a minute</p>
+      <form method="post">
+        <div class="field">
+          <label>Full name</label>
+          <input type="text" name="name" placeholder="Your name" required>
+        </div>
+        <div class="field">
+          <label>Email address</label>
+          <input type="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label>Phone number</label>
+          <input type="text" name="phone" placeholder="01XXXXXXXXX">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" name="password" placeholder="Minimum 6 characters" required minlength="6">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+      </form>
+      <div class="auth-alt">Already have an account? <a href="{{ url_for('login') }}">Sign in</a></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

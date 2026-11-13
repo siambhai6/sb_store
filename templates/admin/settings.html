@@ -1,0 +1,109 @@
+{% extends "admin/base.html" %}
+{% block title %}Site Settings — Admin{% endblock %}
+{% block heading %}Site Settings{% endblock %}
+{% block content %}
+
+<form method="post" enctype="multipart/form-data">
+  <div class="admin-grid-2">
+    <div class="card form-card">
+      <div class="card-head"><h2>Brand & Identity</h2></div>
+      <div class="form-grid">
+        <label class="field field-full">
+          <span>Website Name</span>
+          <input type="text" name="site_name" value="{{ settings.get('site_name','Topupjo') }}">
+        </label>
+        <label class="field field-full">
+          <span>Tagline</span>
+          <input type="text" name="tagline" value="{{ settings.get('tagline','') }}">
+        </label>
+        <label class="field">
+          <span>Website Logo</span>
+          <input type="file" name="logo" accept="image/*">
+          {% if settings.get('logo') %}<div class="img-preview"><img src="{{ url_for('static', filename='uploads/' + settings.get('logo')) }}" alt=""></div>{% endif %}
+        </label>
+        <label class="field">
+          <span>Favicon</span>
+          <input type="file" name="favicon" accept="image/*">
+          {% if settings.get('favicon') %}<div class="img-preview small"><img src="{{ url_for('static', filename='uploads/' + settings.get('favicon')) }}" alt=""></div>{% endif %}
+        </label>
+        <p class="hint field-full">Any uploaded image is automatically resized and optimised.</p>
+      </div>
+    </div>
+
+    <div class="card form-card">
+      <div class="card-head"><h2>Theme Colors</h2></div>
+      <div class="form-grid">
+        <label class="field">
+          <span>Primary Color</span>
+          <div class="color-row">
+            <input type="color" name="primary_color" value="{{ settings.get('primary_color','#db2d20') }}">
+            <input type="text" value="{{ settings.get('primary_color','#db2d20') }}" readonly>
+          </div>
+        </label>
+        <label class="field">
+          <span>Accent Color</span>
+          <div class="color-row">
+            <input type="color" name="accent_color" value="{{ settings.get('accent_color','#fbbf24') }}">
+            <input type="text" value="{{ settings.get('accent_color','#fbbf24') }}" readonly>
+          </div>
+        </label>
+        <label class="field">
+          <span>Dark Color</span>
+          <div class="color-row">
+            <input type="color" name="dark_color" value="{{ settings.get('dark_color','#0f172a') }}">
+            <input type="text" value="{{ settings.get('dark_color','#0f172a') }}" readonly>
+          </div>
+        </label>
+        <label class="field">
+          <span>Currency Symbol</span>
+          <input type="text" name="currency" value="{{ settings.get('currency','৳') }}">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <div class="card-head"><h2>Announcement & Contact</h2></div>
+    <div class="form-grid">
+      <label class="field field-full">
+        <span>Scrolling Notice Text</span>
+        <textarea name="notice_text" rows="2">{{ settings.get('notice_text','') }}</textarea>
+      </label>
+      <label class="field">
+        <span>Telegram / Support Link</span>
+        <input type="text" name="telegram" value="{{ settings.get('telegram','') }}">
+      </label>
+      <label class="field">
+        <span>Phone</span>
+        <input type="text" name="phone" value="{{ settings.get('phone','') }}">
+      </label>
+      <label class="field">
+        <span>Email</span>
+        <input type="text" name="email" value="{{ settings.get('email','') }}">
+      </label>
+      <label class="field field-full">
+        <span>Footer Text</span>
+        <textarea name="footer_text" rows="2">{{ settings.get('footer_text','') }}</textarea>
+      </label>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <div class="card-head"><h2>Static Page Content</h2></div>
+    <div class="form-grid">
+      <label class="field field-full"><span>About Us</span><textarea name="about_text" rows="4">{{ settings.get('about_text','') }}</textarea></label>
+      <label class="field field-full"><span>Terms & Conditions</span><textarea name="terms_text" rows="4">{{ settings.get('terms_text','') }}</textarea></label>
+      <label class="field field-full"><span>Privacy Policy</span><textarea name="privacy_text" rows="4">{{ settings.get('privacy_text','') }}</textarea></label>
+      <label class="field field-full"><span>Refund & Return Policy</span><textarea name="refund_text" rows="4">{{ settings.get('refund_text','') }}</textarea></label>
+      <label class="field field-full"><span>Delete Account Policy</span><textarea name="delete_text" rows="4">{{ settings.get('delete_text','') }}</textarea></label>
+    </div>
+  </div>
+
+  <div class="form-actions sticky-actions">
+    <button type="submit" class="btn btn-primary"><span class="ico ico-save"></span> Save All Settings</button>
+  </div>
+</form>
+
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

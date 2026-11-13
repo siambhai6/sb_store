@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ method.name }} Payment — {{ settings.get('site_name', 'Topupjo') }}{% endblock %}
+{% block content %}
+<div class="gw-page">
+  <div class="gw-shell">
+    <div class="gw-card" style="--mc: {{ method.color or '#cf2771' }}">
+      <div class="gw-head">
+        <span class="gw-logo">
+          {% if method.logo %}
+            <img src="{{ url_for('static', filename='uploads/' + method.logo) }}" alt="{{ method.name }}">
+          {% else %}
+            <span class="gw-logo-txt">{{ method.name[:2]|upper }}</span>
+          {% endif %}
+        </span>
+        <div class="gw-head-txt">
+          <strong>{{ method.name }}</strong>
+          <small>Add Money · Wallet Deposit</small>
+        </div>
+      </div>
+
+      <div class="gw-body">
+        <div class="gw-info">
+          <div class="gw-row">
+            <span>Payment Number</span>
+            <b>{{ method.account_number or '—' }}
+              {% if method.account_number %}
+              <button type="button" class="gw-copy" data-copy="{{ method.account_number }}"><span class="ico ico-copy"></span></button>
+              {% endif %}
+            </b>
+          </div>
+          <div class="gw-row"><span>Amount</span><b class="gw-amount">{{ amount|taka }}</b></div>
+          <div class="gw-row"><span>Type</span><b>Wallet Deposit</b></div>
+        </div>
+
+        <div class="gw-desc">
+          <div class="gw-desc-title">পেমেন্ট নির্দেশনা</div>
+          <div class="gw-desc-text">{{ method.instructions|paydesc(amount) }}</div>
+        </div>
+
+        <form method="post" action="{{ url_for('wallet_verify', mid=method.id) }}" class="gw-form">
+          <label class="gw-label">Transaction ID</label>
+          <input type="text" name="txn_id" id="txnId" class="gw-input" placeholder="TrxID লিখুন" required autocomplete="off">
+          <label class="gw-label" style="margin-top:12px">Sender Number (optional)</label>
+          <input type="text" name="sender_number" class="gw-input" placeholder="যে নাম্বার থেকে পাঠিয়েছেন" autocomplete="off">
+          <button type="submit" class="gw-verify">Verify &amp; Submit</button>
+        </form>
+
+        <p class="gw-note"><span class="ico ico-info"></span> পেমেন্ট যাচাইয়ের পর অ্যাডমিন অনুমোদন করলে ব্যালেন্স যোগ হবে।</p>
+        <div class="gw-actions">
+          <a href="{{ url_for('wallet_methods') }}"><span class="ico ico-arrow-left"></span> Change method</a>
+          <a href="{{ url_for('wallet') }}">Cancel</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-copy]');
+  if (!btn) return;
+  var text = btn.getAttribute('data-copy');
+  function done() {
+    var old = btn.innerHTML;
+    btn.innerHTML = '<span class="ico ico-check2"></span>';
+    btn.classList.add('copied');
+    setTimeout(function () { btn.innerHTML = old; btn.classList.remove('copied'); }, 1500);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else { fallback(); }
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (err) {}
+    document.body.removeChild(ta); done();
+  }
+});
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Deposit — {{ settings.get('site_name', 'Topupjo') }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="dash-layout">
+    {% include "partials/dash_side.html" %}
+    <div class="dash-main">
+      <div class="deposit-grid">
+        <div class="card">
+          <div class="card-head"><h3><span class="ico ico-card"></span> Add Money to Wallet</h3></div>
+          <div class="method-info">
+            Send money to the number below, then submit the form with your Transaction ID.
+            {% for m in payments if m.type == 'instant' %}
+            <div style="margin-top:8px"><strong>{{ m.name }}:</strong> {{ m.account_number }}</div>
+            {% endfor %}
+          </div>
+          <form method="post" action="{{ url_for('create_deposit') }}">
+            <div class="field">
+              <label>Amount (৳)</label>
+              <input type="number" name="amount" min="10" step="1" placeholder="e.g. 500" required>
+            </div>
+            <div class="field">
+              <label>Payment Method</label>
+              <select name="method" required>
+                {% for m in payments if m.type == 'instant' %}
+                <option value="{{ m.name }}">{{ m.name }} — {{ m.account_number }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>Sender Number</label>
+              <input type="text" name="sender_number" placeholder="যে নাম্বার থেকে টাকা পাঠিয়েছেন" required>
+            </div>
+            <div class="field">
+              <label>Transaction ID</label>
+              <input type="text" name="txn_id" placeholder="TrxID" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Submit Deposit Request</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3><span class="ico ico-wallet"></span> Wallet Balance</h3></div>
+          <div style="text-align:center;padding:20px 0">
+            <div style="font-size:13px;color:var(--muted)">Available Balance</div>
+            <div style="font-size:40px;font-weight:900;font-family:'Bree Serif',serif;color:var(--primary)">{{ current_user.balance|taka }}</div>
+          </div>
+          <div class="method-info" style="background:#ecfdf5;border-color:#a7f3d0">
+            <span class="ico ico-check"></span> ডিপোজিট রিকোয়েস্ট অ্যাডমিন যাচাই করে অনুমোদন করলে ব্যালেন্স যোগ হবে।
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Deposit History</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Amount</th><th>Method</th><th>Sender</th><th>TrxID</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for d in deposits %}
+              <tr>
+                <td>#{{ d.id }}</td>
+                <td><strong>{{ d.amount|taka }}</strong></td>
+                <td>{{ d.method }}</td>
+                <td>{{ d.sender_number }}</td>
+                <td>{{ d.txn_id }}</td>
+                <td><span class="badge {{ d.status }}">{{ d.status_bn }}</span></td>
+                <td>{{ d.created_at|dt('%d %b, %I:%M %p') }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">No deposits yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

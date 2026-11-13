@@ -1,0 +1,91 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard — Admin{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="stat-grid">
+  <div class="stat-card stat-primary">
+    <div class="stat-icon"><span class="ico ico-money"></span></div>
+    <div class="stat-info"><span>Total Revenue</span><strong>{{ stats.revenue|taka }}</strong><small>from completed orders</small></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><span class="ico ico-receipt"></span></div>
+    <div class="stat-info"><span>Total Orders</span><strong>{{ stats.orders }}</strong><small>{{ stats.pending_orders }} pending · {{ stats.completed_orders }} completed</small></div>
+  </div>
+  <div class="stat-card stat-amber">
+    <div class="stat-icon"><span class="ico ico-wallet"></span></div>
+    <div class="stat-info"><span>Deposits</span><strong>{{ stats.deposits }}</strong><small>{{ stats.pending_deposits }} awaiting review</small></div>
+  </div>
+  <div class="stat-card stat-green">
+    <div class="stat-icon"><span class="ico ico-users"></span></div>
+    <div class="stat-info"><span>Customers</span><strong>{{ stats.users }}</strong><small>{{ stats.categories }} categories · {{ stats.products }} products</small></div>
+  </div>
+</div>
+
+<div class="admin-grid-2">
+  <div class="card">
+    <div class="card-head">
+      <h2>Recent Orders</h2>
+      <a href="{{ url_for('admin_orders') }}" class="btn btn-ghost btn-sm">View all <span class="ico ico-arrow"></span></a>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>#</th><th>Customer</th><th>Product</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for o in recent_orders %}
+          <tr>
+            <td>#{{ o.id }}</td>
+            <td>{{ o.user.name if o.user else '—' }}</td>
+            <td>{{ o.product.name if o.product else '—' }}</td>
+            <td>{{ o.total|taka }}</td>
+            <td><span class="badge badge-{{ o.status }}">{{ o.status_bn }}</span></td>
+            <td class="muted">{{ o.created_at|dt('%d %b, %I:%M %p') }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="empty">No orders yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Recent Deposits</h2>
+      <a href="{{ url_for('admin_deposits') }}" class="btn btn-ghost btn-sm">View all <span class="ico ico-arrow"></span></a>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>#</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for d in recent_deposits %}
+          <tr>
+            <td>#{{ d.id }}</td>
+            <td>{{ d.user.name if d.user else '—' }}</td>
+            <td>{{ d.amount|taka }}</td>
+            <td><span class="badge badge-{{ d.status }}">{{ d.status_bn }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="empty">No deposits yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Quick Actions</h2></div>
+  <div class="quick-actions">
+    <a href="{{ url_for('admin_category_new') }}" class="quick-btn"><span class="ico ico-folder"></span> New Category</a>
+    <a href="{{ url_for('admin_product_new') }}" class="quick-btn"><span class="ico ico-gamepad"></span> New Product</a>
+    <a href="{{ url_for('admin_package_new') }}" class="quick-btn"><span class="ico ico-box"></span> New Package</a>
+    <a href="{{ url_for('admin_payment_new') }}" class="quick-btn"><span class="ico ico-card"></span> New Payment Method</a>
+    <a href="{{ url_for('admin_banners') }}" class="quick-btn"><span class="ico ico-image"></span> Manage Banners</a>
+    <a href="{{ url_for('admin_settings') }}" class="quick-btn"><span class="ico ico-gear"></span> Site Settings</a>
+  </div>
+</div>
+
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
