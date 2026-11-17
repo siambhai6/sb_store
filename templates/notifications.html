@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Notifications — {{ settings.get('site_name', 'Topupjo') }}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head">
+    <h1>Notifications</h1>
+    <form method="post" action="{{ url_for('notifications_read_all') }}">
+      <button class="btn btn-ghost btn-sm"><span class="ico ico-check2"></span> Mark all read</button>
+    </form>
+  </div>
+
+  <div class="notif-page">
+    {% for n in items %}
+    <a href="{{ url_for('notification_read', nid=n.id) }}" class="notif-card {{ '' if n.is_read else 'unread' }}">
+      <span class="notif-ic {{ n.kind }}">
+        <span class="ico {{ 'ico-receipt' if n.kind == 'order' else ('ico-wallet' if n.kind == 'deposit' else ('ico-bell' if n.kind == 'announcement' else 'ico-info')) }}"></span>
+      </span>
+      <span class="notif-txt">
+        <b>{{ n.title }}</b>
+        <span class="notif-body">{{ n.body }}</span>
+        <em>{{ n.created_at|dt('%d %b %Y, %I:%M %p') }} · {{ n.created_at|timeago }}</em>
+      </span>
+      {% if not n.is_read %}<span class="notif-unread-dot"></span>{% endif %}
+    </a>
+    {% else %}
+    <div class="empty-state">
+      <span class="ico ico-bell"></span>
+      <p>এখনো কোনো নোটিফিকেশন নেই</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

@@ -1,0 +1,114 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ user.name }} — Chat{% endblock %}
+{% block heading %}Chat · {{ user.name }}{% endblock %}
+{% block content %}
+
+<div class="card chat-admin-card">
+  <div class="chat-head">
+    <a href="{{ url_for('chat_home') }}" class="chat-back"><span class="ico ico-arrow-left"></span></a>
+    <span class="chat-ava">
+      {% if user.avatar %}<img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="">{% else %}{{ user.name[0]|upper }}{% endif %}
+    </span>
+    <div class="chat-head-txt">
+      <strong>{{ user.name }}</strong>
+      <small>{{ user.email }} · {{ user.phone or 'no phone' }}</small>
+    </div>
+    <a href="{{ url_for('admin_user_detail', uid=user.id) }}" class="btn btn-ghost btn-sm">User profile</a>
+  </div>
+
+  <div class="chat-body" id="chatBody">
+    {% for m in msgs %}
+    <div class="msg-row {{ 'mine' if m.sender == 'admin' else 'theirs' }}" data-id="{{ m.id }}" data-body="{{ m.body|e }}" data-sender="{{ m.sender }}">
+      {% if m.sender == 'user' %}
+      <span class="msg-ava">
+        {% if user.avatar %}<img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="">{% else %}{{ user.name[0]|upper }}{% endif %}
+      </span>
+      {% endif %}
+      <div class="msg-wrap">
+        {% if m.reply_to and not m.reply_to.deleted %}
+        <div class="msg-quote"><b>{{ 'Support' if m.reply_to.sender == 'admin' else user.name }}</b><span>{{ m.reply_to.body }}</span></div>
+        {% endif %}
+        <div class="msg-bubble {{ 'deleted' if m.deleted }}">{% if m.deleted %}<em>এই মেসেজটি ডিলিট করা হয়েছে</em>{% else %}{{ m.body }}{% endif %}</div>
+        <span class="msg-meta">{{ m.created_at|dt('%d %b, %I:%M %p') }}{% if m.edited %} · edited{% endif %}</span>
+        {% if m.reaction_map %}
+        <div class="msg-reacts">{% for who, emo in m.reaction_map.items() %}<span>{{ emo }}</span>{% endfor %}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="chat-empty"><span class="ico ico-chat"></span><p>এখনো কোনো মেসেজ নেই</p></div>
+    {% endfor %}
+  </div>
+
+  <div class="chat-reply-bar" id="replyBar">
+    <span class="ico ico-reply"></span>
+    <div><b>Reply to</b><small id="replyText"></small></div>
+    <button type="button" onclick="clearReply()"><span class="ico ico-close"></span></button>
+  </div>
+
+  <form method="post" action="{{ url_for('admin_chat_thread', uid=user.id) }}" class="chat-input-bar" id="chatForm">
+    <input type="hidden" name="reply_to" id="replyTo" value="">
+    <input type="text" name="body" id="chatInput" placeholder="Reply লিখুন…" autocomplete="off" required>
+    <button type="submit" class="chat-send"><span class="ico ico-send"></span></button>
+  </form>
+</div>
+
+<div class="msg-sheet-back" id="msgSheet" onclick="if(event.target===this)closeSheet()">
+  <div class="msg-sheet">
+    <div class="react-row" id="reactRow">
+      <button type="button" data-emoji="❤️">❤️</button>
+      <button type="button" data-emoji="👍">👍</button>
+      <button type="button" data-emoji="😂">😂</button>
+      <button type="button" data-emoji="😮">😮</button>
+      <button type="button" data-emoji="😢">😢</button>
+      <button type="button" data-emoji="🔥">🔥</button>
+    </div>
+    <button type="button" class="sheet-item" data-act="edit"><span class="ico ico-edit"></span> Edit</button>
+    <button type="button" class="sheet-item" data-act="copy"><span class="ico ico-copy"></span> Copy</button>
+    <button type="button" class="sheet-item" data-act="reply"><span class="ico ico-reply"></span> Reply</button>
+    <button type="button" class="sheet-item danger" data-act="delete"><span class="ico ico-trash"></span> Delete</button>
+  </div>
+</div>
+<form method="post" id="msgActionForm" style="display:none"></form>
+
+<script>
+var HOLD_MS = 3000, activeMsg = null, holdTimer = null;
+function openSheet(el){
+  activeMsg = el; document.getElementById('msgSheet').classList.add('open');
+  var mine = el.getAttribute('data-sender') === 'admin';
+  document.querySelector('#msgSheet [data-act="edit"]').style.display = mine ? 'flex' : 'none';
+  document.querySelector('#msgSheet [data-act="delete"]').style.display = mine ? 'flex' : 'none';
+}
+function closeSheet(){ document.getElementById('msgSheet').classList.remove('open'); activeMsg = null; }
+function startHold(e){ var el=e.target.closest('.msg-row'); if(!el) return; holdTimer=setTimeout(function(){openSheet(el);}, HOLD_MS); }
+function cancelHold(){ clearTimeout(holdTimer); }
+var cb=document.getElementById('chatBody');
+cb.addEventListener('mousedown', startHold);
+cb.addEventListener('touchstart', startHold, {passive:true});
+['mouseup','mouseleave','touchend','touchmove','scroll'].forEach(function(ev){ cb.addEventListener(ev, cancelHold, {passive:true}); });
+cb.addEventListener('contextmenu', function(e){ var el=e.target.closest('.msg-row'); if(el){e.preventDefault(); openSheet(el);} });
+document.getElementById('reactRow').addEventListener('click', function(e){
+  var b=e.target.closest('[data-emoji]'); if(!b||!activeMsg) return;
+  post('/chat/'+activeMsg.getAttribute('data-id')+'/react', {emoji:b.getAttribute('data-emoji')});
+});
+document.querySelectorAll('.sheet-item').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    if(!activeMsg) return;
+    var id=activeMsg.getAttribute('data-id'), body=activeMsg.getAttribute('data-body'), act=btn.getAttribute('data-act');
+    if(act==='copy'){ if(navigator.clipboard) navigator.clipboard.writeText(body); closeSheet(); return; }
+    if(act==='reply'){ document.getElementById('replyTo').value=id; document.getElementById('replyText').textContent=body.slice(0,60); document.getElementById('replyBar').classList.add('open'); document.getElementById('chatInput').focus(); closeSheet(); return; }
+    if(act==='edit'){ var v=prompt('Edit message', body); if(v&&v.trim()) post('/chat/'+id+'/edit',{body:v.trim()}); closeSheet(); return; }
+    if(act==='delete'){ if(confirm('Delete this message?')) post('/chat/'+id+'/delete',{}); closeSheet(); return; }
+  });
+});
+function post(url,data){
+  var f=document.getElementById('msgActionForm'); f.action=url; f.innerHTML='';
+  Object.keys(data).forEach(function(k){ var i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=data[k]; f.appendChild(i); });
+  f.submit();
+}
+function clearReply(){ document.getElementById('replyTo').value=''; document.getElementById('replyBar').classList.remove('open'); }
+cb.scrollTop = cb.scrollHeight;
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

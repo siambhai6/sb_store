@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+{% block title %}Chats — Admin{% endblock %}
+{% block heading %}Chats{% endblock %}
+{% block content %}
+
+<div class="tg-admin">
+  <div class="tg-top">
+    <h1>Chats <span class="tg-count">{{ rows|length }}</span></h1>
+    <a href="{{ url_for('admin_users') }}" class="tg-top-link"><span class="ico ico-users"></span> Users</a>
+  </div>
+
+  <form method="get" class="tg-search">
+    <span class="ico ico-search"></span>
+    <input type="text" name="q" value="{{ q }}" placeholder="Search Chats" autocomplete="off">
+    {% if q %}<a href="{{ url_for('chat_home') }}" class="tg-clear" title="Clear"><span class="ico ico-close"></span></a>{% endif %}
+  </form>
+
+  <div class="tg-tabs">
+    <a href="{{ url_for('chat_home', q=q or None) }}" class="{{ 'active' if flt != 'inbox' }}">All</a>
+    <a href="{{ url_for('chat_home', q=q or None, filter='inbox') }}" class="{{ 'active' if flt == 'inbox' }}">Inbox{% if unread_total %} <span class="tg-tab-badge">{{ unread_total }}</span>{% endif %}</a>
+  </div>
+
+  <div class="tg-list">
+    {% for r in rows %}
+    <a href="{{ url_for('admin_chat_thread', uid=r.user.id) }}" class="tg-row {{ 'unread' if r.unread }}">
+      <span class="tg-ava">
+        {% if r.user.avatar %}
+          <img src="{{ url_for('static', filename='uploads/' + r.user.avatar) }}" alt="">
+        {% else %}{{ r.user.name[0]|upper }}{% endif %}
+        <i class="tg-dot"></i>
+      </span>
+      <span class="tg-rowbody">
+        <span class="tg-line1">
+          <b>{{ r.user.name }}</b>
+          <em>{{ (r.last.created_at|timeago) if r.last else '' }}</em>
+        </span>
+        <span class="tg-line2">
+          <span class="tg-preview">
+            {% if r.last %}
+              {% if r.last.deleted %}<i>মেসেজ ডিলিট করা হয়েছে</i>
+              {% else %}{% if r.last.sender == 'admin' %}<span class="tg-you">You: </span>{% endif %}{{ r.last.body[:70] }}{% endif %}
+            {% else %}<i>কোনো মেসেজ নেই</i>{% endif %}
+          </span>
+          {% if r.unread %}<span class="tg-badge">{{ r.unread }}</span>{% endif %}
+        </span>
+      </span>
+    </a>
+    {% else %}
+    <div class="tg-empty">
+      <span class="ico ico-chat"></span>
+      <b>No chats found</b>
+      <small>{% if q %}Try a different search.{% else %}Messages from users will appear here.{% endif %}</small>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
