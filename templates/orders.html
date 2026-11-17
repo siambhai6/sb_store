@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}My Orders — {{ settings.get('site_name', 'Topupjo') }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="dash-layout">
+    {% include "partials/dash_side.html" %}
+    <div class="dash-main">
+      <div class="card">
+        <div class="card-head">
+          <h3><span class="ico ico-box"></span> My Orders</h3>
+          <a href="{{ url_for('topup') }}" class="btn btn-primary btn-sm">+ New Order</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Product</th><th>Package</th><th>Player ID</th><th>Payment</th><th>Total</th><th>Status</th><th>Date</th></tr>
+            </thead>
+            <tbody>
+              {% for o in orders %}
+              <tr>
+                <td>#{{ o.id }}</td>
+                <td>{{ o.product.name if o.product else '—' }}</td>
+                <td>{{ o.package.name if o.package else '—' }}</td>
+                <td>{{ o.player_id }}{% for k, v in o.extra_fields.items() if v and k != 'Player ID / UID' %}<div class="cell-sub">{{ k }}: {{ v }}</div>{% endfor %}</td>
+                <td>{{ o.payment_method }}{% if o.txn_id %}<div class="cell-sub">TXN: {{ o.txn_id }}</div>{% endif %}</td>
+                <td><strong>{{ o.total|taka }}</strong></td>
+                <td><span class="badge {{ o.status }}">{{ o.status_bn }}</span></td>
+                <td>{{ o.created_at|dt('%d %b, %I:%M %p') }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">No orders yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

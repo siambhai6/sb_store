@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+{% block title %}Notifications — Admin{% endblock %}
+{% block heading %}Notifications &amp; Announcement{% endblock %}
+{% block content %}
+
+<div class="detail-grid">
+  <div class="card form-card">
+    <div class="card-head"><h2>Send Notification</h2></div>
+    <form method="post" class="form-grid">
+      <label class="field">
+        <span>Send To</span>
+        <select name="target" id="notifTarget" onchange="document.getElementById('userPick').style.display = this.value === 'all' ? 'none' : 'block'">
+          <option value="all">All users (Announcement)</option>
+          <option value="one">Specific user</option>
+        </select>
+      </label>
+      <label class="field" id="userPick" style="display:none">
+        <span>Select User</span>
+        <select name="user_id">
+          {% for u in users %}<option value="{{ u.id }}">{{ u.name }} — {{ u.email }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="field field-full">
+        <span>Title</span>
+        <input type="text" name="title" placeholder="যেমন: নতুন অফার!" required>
+      </label>
+      <label class="field field-full">
+        <span>Message</span>
+        <textarea name="body" rows="4" placeholder="নোটিফিকেশনের বিস্তারিত লিখুন…"></textarea>
+      </label>
+      <div class="form-actions field-full">
+        <button class="btn btn-primary"><span class="ico ico-send"></span> Send Notification</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Recently Sent</h2></div>
+    <div class="notif-page" style="padding:0">
+      {% for n in sent %}
+      <div class="notif-card" style="cursor:default">
+        <span class="notif-ic {{ n.kind }}"><span class="ico ico-bell"></span></span>
+        <span class="notif-txt">
+          <b>{{ n.title }}</b>
+          <span class="notif-body">{{ n.body }}</span>
+          <em>{{ n.user.name if n.user else '' }} · {{ n.created_at|dt('%d %b, %I:%M %p') }}</em>
+        </span>
+      </div>
+      {% else %}
+      <div class="empty">No notifications sent yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

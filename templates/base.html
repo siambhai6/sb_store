@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ settings.get('site_name', 'Topupjo') }} — {{ settings.get('tagline', 'Game Top Up') }}{% endblock %}</title>
+  <meta name="description" content="{{ settings.get('tagline', 'Trusted game top up platform in Bangladesh') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bree+Serif&family=Lato:wght@400;700;900&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/icons.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/phase2.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/phase3.css') }}?v=3">
+  {% if settings.get('favicon') %}
+  <link rel="icon" href="{{ url_for('static', filename='uploads/' + settings.get('favicon')) }}">
+  {% endif %}
+  <style>
+    :root {
+      --primary: {{ settings.get('primary_color', '#db2d20') }};
+      --accent: {{ settings.get('accent_color', '#fbbf24') }};
+      --dark: {{ settings.get('dark_color', '#0f172a') }};
+    }
+  </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="{{ url_for('home') }}" class="brand">
+      {% if settings.get('logo') %}
+        <img src="{{ url_for('static', filename='uploads/' + settings.get('logo')) }}" alt="{{ settings.get('site_name') }}" class="brand-logo">
+      {% else %}
+        <span class="brand-mark"><span class="ico ico-bolt"></span></span>
+      {% endif %}
+      <span class="brand-name">{{ settings.get('site_name', 'Topupjo') }}</span>
+    </a>
+    <nav class="main-nav">
+      <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">Home</a>
+      <a href="{{ url_for('topup') }}" class="{{ 'active' if request.endpoint in ['topup','product_detail'] }}">Topup</a>
+      <a href="{{ url_for('contactus') }}" class="{{ 'active' if request.endpoint == 'contactus' }}">Contact Us</a>
+    </nav>
+    <div class="header-actions">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('wallet') }}" class="hdr-wallet" title="Wallet Balance">
+          <span class="ico ico-wallet"></span><span class="hdr-bal">{{ current_user.balance|taka }}</span>
+        </a>
+        <div class="hdr-notif" id="hdrNotif">
+          <button type="button" class="hdr-icon" onclick="toggleNotif(event)" aria-label="Notifications">
+            <span class="ico ico-bell"></span>
+            {% if unread_notifications %}<span class="hdr-badge" id="hdrBadge">{{ unread_notifications if unread_notifications < 100 else '99+' }}</span>{% endif %}
+          </button>
+          <div class="notif-pop" id="notifPop">
+            <div class="notif-pop-head">
+              <strong>Notifications</strong>
+              {% if unread_notifications %}<a href="{{ url_for('notifications') }}">View all</a>{% endif %}
+            </div>
+            <div class="notif-pop-list">
+              {% for n in header_notifications %}
+              <a href="{{ url_for('notification_read', nid=n.id) }}" class="notif-item {{ '' if n.is_read else 'unread' }}">
+                <span class="notif-ic {{ n.kind }}"><span class="ico {{ 'ico-receipt' if n.kind == 'order' else ('ico-wallet' if n.kind == 'deposit' else 'ico-bell') }}"></span></span>
+                <span class="notif-txt">
+                  <b>{{ n.title }}</b>
+                  <small>{{ n.body }}</small>
+                  <em>{{ n.created_at|timeago }}</em>
+                </span>
+              </a>
+              {% else %}
+              <div class="notif-empty">কোনো নোটিফিকেশন নেই</div>
+              {% endfor %}
+            </div>
+            <a href="{{ url_for('notifications') }}" class="notif-all">সব নোটিফিকেশন দেখুন</a>
+          </div>
+        </div>
+        <a href="{{ url_for('profile') }}" class="hdr-avatar" title="My Account">
+          {% if current_user.avatar %}
+            <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="{{ current_user.name }}">
+          {% else %}
+            <span>{{ current_user.name[0]|upper }}</span>
+          {% endif %}
+        </a>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-primary hdr-login"><span class="ico ico-user"></span> Login</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<!-- Notice (directly under the logo / header) -->
+{% if settings.get('notice_text') %}
+<div class="notice-bar">
+  <span class="notice-label">NOTICE</span>
+  <div class="marquee"><div class="marquee-track">{{ settings.get('notice_text') }}</div></div>
+</div>
+{% endif %}
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-wrap container">
+    {% for cat, msg in messages %}
+      <div class="flash flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-col">
+      <div class="brand brand-footer">
+        {% if settings.get('logo') %}
+          <img src="{{ url_for('static', filename='uploads/' + settings.get('logo')) }}" alt="logo" class="brand-logo">
+        {% else %}<span class="brand-mark"><span class="ico ico-bolt"></span></span>{% endif %}
+        <span class="brand-name">{{ settings.get('site_name', 'Topupjo') }}</span>
+      </div>
+      <p>{{ settings.get('footer_text', '100% trusted game top up platform in Bangladesh.') }}</p>
+      <div class="socials">
+        <a href="{{ settings.get('telegram', 'https://t.me/') }}" target="_blank" class="social tg">Telegram</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Quick Links</h4>
+      <a href="{{ url_for('topup') }}">Topup</a>
+      <a href="{{ url_for('about') }}">About Us</a>
+      <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
+      <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="{{ url_for('refund') }}">Refund &amp; Return Policy</a>
+      <a href="{{ url_for('delete_account') }}">Delete Account Policy</a>
+      <a href="{{ url_for('contactus') }}">Contact Us</a>
+      <a href="{{ settings.get('telegram', '#') }}" target="_blank">Telegram HelpLine</a>
+    </div>
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <p><span class="ico ico-phone"></span> {{ settings.get('phone', '01700-000000') }}</p>
+      <p><span class="ico ico-mail"></span> {{ settings.get('email', 'support@topupjo.com') }}</p>
+      <p><span class="ico ico-clock"></span> সকাল ৮টা থেকে রাত ১২টা</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="container">
+      <span>© {{ current_year }} {{ settings.get('site_name', 'Topupjo') }}. All Rights Reserved.</span>
+      <span>Developed with <span class="ico ico-heart"></span> for gamers</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Floating help -->
+<div class="help-fab-wrap">
+  <div class="help-menu" id="helpMenu">
+    <div class="help-menu-head">সাহায্য নিন</div>
+    {% for s in support_links %}
+    <a href="{{ s.url }}" target="_blank" rel="noopener" class="help-item">
+      {% if s.icon == 'telegram' %}
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="#229ED9"><path d="M21.9 4.3 18.6 20c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1L18 6.4c.4-.4-.1-.6-.6-.2L6.5 13.1l-4.9-1.5c-1.1-.3-1.1-1 .2-1.5L20.6 3c.9-.3 1.6.2 1.3 1.3z"/></svg>
+      {% elif s.icon == 'whatsapp' %}
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.1-.2 0-.4.1-.5l.6-.7c.1-.2.1-.3 0-.5l-.8-1.9c-.2-.5-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.6 2.2.7 3 .6.5-.1 1.4-.6 1.6-1.1.2-.6.2-1 .1-1.1 0-.1-.2-.2-.4-.3z"/></svg>
+      {% else %}
+      <span class="ico ico-chat"></span>
+      {% endif %}
+      <span>{{ s.name }}</span>
+    </a>
+    {% endfor %}
+    <a href="{{ url_for('chat_home') }}" class="help-item"><span class="ico ico-chat"></span><span>Live Chat</span></a>
+  </div>
+  <button type="button" class="help-float" onclick="toggleHelp(event)"><span class="ico ico-chat"></span> সাহায্য লাগবে?</button>
+</div>
+
+{% if popup_enabled and (settings.get('popup_image') or settings.get('popup_text') or settings.get('popup_title')) %}
+<div class="site-popup-back" id="sitePopup">
+  <div class="site-popup" id="sitePopupCard" data-link="{{ settings.get('popup_link','') }}">
+    <button type="button" class="site-popup-x" aria-label="Close">&times;</button>
+    {% if settings.get('popup_image') %}
+    <img class="site-popup-img" src="{{ url_for('static', filename='uploads/' + settings.get('popup_image')) }}" alt="{{ settings.get('popup_title','') }}">
+    {% endif %}
+    <div class="site-popup-body">
+      {% if settings.get('popup_title') %}<h3>{{ settings.get('popup_title') }}</h3>{% endif %}
+      {% if settings.get('popup_text') %}<p>{{ settings.get('popup_text') }}</p>{% endif %}
+      <span class="site-popup-cta">ক্লিক করুন <span class="ico ico-arrow"></span></span>
+    </div>
+    <button type="button" class="site-popup-hide">আজ আর দেখাবেন না</button>
+  </div>
+</div>
+{% endif %}
+
+<!-- Mobile bottom nav -->
+<nav class="mobile-nav">
+  <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}"><span class="ico ico-home"></span>Home</a>
+  <a href="{{ url_for('topup') }}" class="{{ 'active' if request.endpoint in ['topup','product_detail'] }}"><span class="ico ico-gamepad"></span>Topup</a>
+  <a href="{{ url_for('my_orders') if current_user.is_authenticated else url_for('login') }}" class="{{ 'active' if request.endpoint == 'my_orders' }}"><span class="ico ico-receipt"></span>Orders</a>
+  <a href="{{ url_for('wallet') if current_user.is_authenticated else url_for('login') }}" class="{{ 'active' if request.endpoint in ['wallet','wallet_methods','wallet_gateway'] }}"><span class="ico ico-wallet"></span>Wallet</a>
+  <a href="{{ url_for('chat_home') }}" class="{{ 'active' if request.endpoint in ['chat_home','admin_chat_thread'] }}"><span class="ico ico-chat"></span>Chat{% if chat_unread %}<i class="mnav-dot">{{ chat_unread }}</i>{% endif %}</a>
+</nav>
+
+<script>
+function markAllNotifRead(){
+  var badge = document.getElementById('hdrBadge');
+  if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+  var items = document.querySelectorAll('#notifPop .notif-item.unread');
+  items.forEach(function(el){ el.classList.remove('unread'); });
+  fetch('{{ url_for("notifications_read_all") }}', {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest'},
+    keepalive: true
+  }).catch(function(){});
+}
+function toggleHelp(e){
+  if(e){e.stopPropagation();}
+  var m=document.getElementById('helpMenu');
+  if(m){ m.classList.toggle('open'); }
+}
+document.addEventListener('click', function(ev){
+  var m=document.getElementById('helpMenu');
+  if(m && m.classList.contains('open') && !ev.target.closest('.help-fab-wrap')){ m.classList.remove('open'); }
+});
+(function(){
+  var pop=document.getElementById('sitePopup');
+  if(!pop) return;
+  var today=new Date().toISOString().slice(0,10);
+  var KEY='topupjo_popup_hide';
+  try{ if(localStorage.getItem(KEY)===today){ pop.remove(); return; } }catch(err){}
+  pop.classList.add('show');
+  var card=document.getElementById('sitePopupCard');
+  var x=pop.querySelector('.site-popup-x');
+  var hide=pop.querySelector('.site-popup-hide');
+  function close(){ pop.classList.remove('show'); setTimeout(function(){ pop.remove(); }, 250); }
+  if(x) x.addEventListener('click', function(ev){ ev.stopPropagation(); close(); });
+  if(hide) hide.addEventListener('click', function(ev){
+    ev.stopPropagation();
+    try{ localStorage.setItem(KEY, today); }catch(err){}
+    close();
+  });
+  if(card) card.addEventListener('click', function(ev){
+    if(ev.target.closest('.site-popup-x') || ev.target.closest('.site-popup-hide')) return;
+    var link=card.getAttribute('data-link');
+    if(link){ window.location.href=link; }
+  });
+})();
+function toggleNotif(e){
+  if(e){e.stopPropagation();}
+  var p=document.getElementById('notifPop');
+  if(p){
+    var opening = !p.classList.contains('open');
+    p.classList.toggle('open');
+    if(opening){ markAllNotifRead(); }
+  }
+}
+document.addEventListener('click', function(ev){
+  var p=document.getElementById('notifPop');
+  if(p && p.classList.contains('open') && !ev.target.closest('#hdrNotif')){ p.classList.remove('open'); }
+});
+</script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

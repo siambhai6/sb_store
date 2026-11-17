@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Wallet — {{ settings.get('site_name', 'Topupjo') }}{% endblock %}
+{% block content %}
+<div class="container wallet-page">
+
+  <div class="wallet-topbar">
+    <a href="{{ url_for('dashboard') }}" class="wallet-back" aria-label="Back"><span class="ico ico-arrow-left"></span></a>
+    <h1>Wallet</h1>
+    <span class="wallet-top-space"></span>
+  </div>
+
+  <div class="wallet-profile">
+    <form method="post" action="{{ url_for('profile') }}" enctype="multipart/form-data" class="wallet-avatar-form">
+      <input type="hidden" name="action" value="avatar">
+      <input type="hidden" name="next" value="{{ url_for('wallet') }}">
+      <label class="wallet-avatar" for="avatarInput">
+        {% if current_user.avatar %}
+          <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="{{ current_user.name }}">
+        {% else %}
+          <span class="wallet-avatar-txt">{{ current_user.name[0]|upper }}</span>
+        {% endif %}
+        <span class="wallet-cam"><span class="ico ico-camera"></span></span>
+      </label>
+      <input type="file" name="avatar" id="avatarInput" accept="image/*" hidden onchange="this.form.submit()">
+    </form>
+    <h2>{{ current_user.name }}</h2>
+    <p>{{ current_user.email }}</p>
+  </div>
+
+  <div class="wallet-balance-card">
+    <div class="wb-label">Available Balance</div>
+    <div class="wb-amount">{{ current_user.balance|taka }}</div>
+    <button type="button" class="wb-add" onclick="openAddMoney()">
+      <span class="ico ico-plus"></span> Add Money
+    </button>
+  </div>
+
+  <div class="wallet-tx-head">
+    <h3>Transaction History</h3>
+    {% if txns %}<span class="tx-count">{{ txns|length }}</span>{% endif %}
+  </div>
+
+  <div class="wallet-tx-list">
+    {% for t in txns %}
+    <div class="tx-row">
+      <span class="tx-ic {{ t.kind }}"><span class="ico {{ 'ico-wallet' if t.kind == 'deposit' else 'ico-receipt' }}"></span></span>
+      <span class="tx-body">
+        <b>{{ t.title }}</b>
+        <small>{{ t.date|dt('%d %b %Y, %I:%M %p') }}{% if t.ref %} · {{ t.ref }}{% endif %}</small>
+      </span>
+      <span class="tx-right">
+        <b class="{{ 'tx-in' if t.sign == '+' else 'tx-out' }}">{{ t.sign }}{{ t.amount|taka }}</b>
+        <small class="tx-status {{ t.status }}">{{ {'pending':'Pending','completed':'Complete','approved':'Approved','cancelled':'Cancelled','rejected':'Rejected'}.get(t.status, t.status) }}</small>
+      </span>
+    </div>
+    {% else %}
+    <div class="wallet-empty">
+      <div class="we-ic"><span class="ico ico-receipt"></span></div>
+      <p>No transactions yet</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Add money modal -->
+<div class="modal-back" id="addMoneyModal" onclick="if(event.target===this)closeAddMoney()">
+  <div class="modal-card">
+    <button type="button" class="modal-x" onclick="closeAddMoney()"><span class="ico ico-close"></span></button>
+    <h3>Add Money</h3>
+    <p class="modal-sub">কত টাকা অ্যাড করতে চান?</p>
+    <form method="post" action="{{ url_for('wallet_add') }}">
+      <div class="amount-input">
+        <span>৳</span>
+        <input type="number" name="amount" min="10" step="1" placeholder="0" required autofocus>
+      </div>
+      <div class="amount-quick">
+        {% for v in [100, 200, 500, 1000, 2000] %}
+        <button type="button" onclick="document.querySelector('.amount-input input').value={{ v }}">৳{{ v }}</button>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Next <span class="ico ico-arrow"></span></button>
+    </form>
+  </div>
+</div>
+
+<script>
+function openAddMoney(){ document.getElementById('addMoneyModal').classList.add('open'); }
+function closeAddMoney(){ document.getElementById('addMoneyModal').classList.remove('open'); }
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

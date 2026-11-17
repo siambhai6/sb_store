@@ -1,0 +1,246 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ user.name }} — Chat{% endblock %}
+{% block heading %}Chat · {{ user.name }}{% endblock %}
+{% block content %}
+
+<div class="card chat-admin-card">
+  <div class="chat-head">
+    <a href="{{ url_for('chat_home') }}" class="chat-back"><span class="ico ico-arrow-left"></span></a>
+    <span class="chat-ava">
+      {% if user.avatar %}<img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="">{% else %}{{ user.name[0]|upper }}{% endif %}
+    </span>
+    <div class="chat-head-txt">
+      <strong>{{ user.name }}</strong>
+      <small>{{ user.email }} · {{ user.phone or 'no phone' }}</small>
+    </div>
+    <a href="{{ url_for('admin_user_detail', uid=user.id) }}" class="btn btn-ghost btn-sm">User profile</a>
+  </div>
+
+  <div class="chat-body" id="chatBody">
+    {% for m in msgs %}
+    <div class="msg-row {{ 'mine' if m.sender == 'admin' else 'theirs' }}" data-id="{{ m.id }}" data-body="{{ m.body|e }}" data-sender="{{ m.sender }}">
+      {% if m.sender == 'user' %}
+      <span class="msg-ava">
+        {% if user.avatar %}<img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="">{% else %}{{ user.name[0]|upper }}{% endif %}
+      </span>
+      {% endif %}
+      <div class="msg-wrap">
+        {% if m.reply_to and not m.reply_to.deleted %}
+        <div class="msg-quote"><b>{{ 'Support' if m.reply_to.sender == 'admin' else user.name }}</b><span>{{ m.reply_to.body }}</span></div>
+        {% endif %}
+        <div class="msg-bubble {{ 'deleted' if m.deleted }}">
+          {% if m.deleted %}<em>এই মেসেজটি ডিলিট করা হয়েছে</em>{% else %}
+            {% if m.image %}<img class="chat-img" src="{{ url_for('static', filename='uploads/' + m.image) }}" alt="attachment" onclick="window.open(this.src)">{% endif %}
+            {% if m.body %}<span class="txt">{{ m.body }}</span>{% endif %}
+          {% endif %}
+        </div>
+        <span class="msg-meta">{{ m.created_at|dt('%d %b, %I:%M %p') }}{% if m.edited %} · edited{% endif %}</span>
+        {% if m.reaction_map %}
+        <div class="msg-reacts">{% for who, emo in m.reaction_map.items() %}<span>{{ emo }}</span>{% endfor %}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="chat-empty" id="chatEmpty"><span class="ico ico-chat"></span><p>এখনো কোনো মেসেজ নেই</p></div>
+    {% endfor %}
+  </div>
+
+  <div class="chat-reply-bar" id="replyBar">
+    <span class="ico ico-reply"></span>
+    <div><b>Reply to</b><small id="replyText"></small></div>
+    <button type="button" onclick="clearReply()"><span class="ico ico-close"></span></button>
+  </div>
+
+  <div class="tg-img-preview" id="imgPreview" style="display:none">
+    <span class="ico ico-image"></span><span id="imgName"></span>
+    <button type="button" id="imgClear"><span class="ico ico-close"></span></button>
+  </div>
+
+  <form method="post" action="{{ url_for('admin_chat_thread', uid=user.id) }}" class="chat-input-bar" id="chatForm" enctype="multipart/form-data">
+    <input type="hidden" name="reply_to" id="replyTo" value="">
+    <label class="tg-attach" title="Send image">
+      <input type="file" name="image" id="chatImage" accept="image/*" hidden>
+      <span class="ico ico-camera"></span>
+    </label>
+    <input type="text" name="body" id="chatInput" placeholder="Reply লিখুন…" autocomplete="off">
+    <button type="submit" class="chat-send"><span class="ico ico-send"></span></button>
+  </form>
+</div>
+
+<div class="msg-sheet-back" id="msgSheet" onclick="if(event.target===this)closeSheet()">
+  <div class="msg-sheet">
+    <div class="react-row" id="reactRow">
+      <button type="button" data-emoji="❤️">❤️</button>
+      <button type="button" data-emoji="👍">👍</button>
+      <button type="button" data-emoji="😂">😂</button>
+      <button type="button" data-emoji="😮">😮</button>
+      <button type="button" data-emoji="😢">😢</button>
+      <button type="button" data-emoji="🔥">🔥</button>
+    </div>
+    <button type="button" class="sheet-item" data-act="edit"><span class="ico ico-edit"></span> Edit</button>
+    <button type="button" class="sheet-item" data-act="copy"><span class="ico ico-copy"></span> Copy</button>
+    <button type="button" class="sheet-item" data-act="reply"><span class="ico ico-reply"></span> Reply</button>
+    <button type="button" class="sheet-item danger" data-act="delete"><span class="ico ico-trash"></span> Delete</button>
+  </div>
+</div>
+<form method="post" id="msgActionForm" style="display:none"></form>
+
+<script>
+var HOLD_MS = 3000, activeMsg = null, holdTimer = null;
+var chatBody = document.getElementById('chatBody');
+var chatForm = document.getElementById('chatForm');
+var chatInput = document.getElementById('chatInput');
+var chatImage = document.getElementById('chatImage');
+var replyToInput = document.getElementById('replyTo');
+var USER_NAME = {{ user.name|tojson }};
+var USER_INITIAL = {{ (user.name[0]|upper)|tojson }};
+var USER_AVATAR = {{ (url_for('static', filename='uploads/' + user.avatar) if user.avatar else '')|tojson }};
+var lastId = 0;
+chatBody.querySelectorAll('.msg-row').forEach(function (el) {
+  var id = parseInt(el.getAttribute('data-id'), 10) || 0;
+  if (id > lastId) lastId = id;
+});
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function scrollBottom(force) {
+  if (force || chatBody.scrollHeight - chatBody.scrollTop - chatBody.clientHeight < 140) {
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+}
+function renderMsg(m) {
+  if (!m || document.querySelector('#chatBody .msg-row[data-id="' + m.id + '"]')) return;
+  var empty = document.getElementById('chatEmpty');
+  if (empty) empty.remove();
+  var el = document.createElement('div');
+  el.className = 'msg-row ' + (m.sender === 'admin' ? 'mine' : 'theirs');
+  el.setAttribute('data-id', m.id);
+  el.setAttribute('data-body', m.body || '');
+  el.setAttribute('data-sender', m.sender);
+  var html = '';
+  if (m.sender === 'user') {
+    html += '<span class="msg-ava">' + (USER_AVATAR ? '<img src="' + USER_AVATAR + '" alt="">' : USER_INITIAL) + '</span>';
+  }
+  html += '<div class="msg-wrap">';
+  if (m.reply_to) {
+    html += '<div class="msg-quote"><b>' + (m.reply_to.sender === 'admin' ? 'Support' : esc(USER_NAME)) +
+      '</b><span>' + esc(m.reply_to.body) + '</span></div>';
+  }
+  html += '<div class="msg-bubble' + (m.deleted ? ' deleted' : '') + '">';
+  if (m.deleted) {
+    html += '<em>এই মেসেজটি ডিলিট করা হয়েছে</em>';
+  } else {
+    if (m.image) html += '<img class="chat-img" src="' + m.image + '" alt="attachment" onclick="window.open(this.src)">';
+    if (m.body) html += '<span class="txt">' + esc(m.body) + '</span>';
+  }
+  html += '</div>';
+  html += '<span class="msg-meta">' + esc(m.time_full) + (m.edited ? ' · edited' : '') + '</span>';
+  if (m.reactions) {
+    var keys = Object.keys(m.reactions);
+    if (keys.length) {
+      html += '<div class="msg-reacts">';
+      keys.forEach(function (k) { html += '<span>' + esc(m.reactions[k]) + '</span>'; });
+      html += '</div>';
+    }
+  }
+  html += '</div>';
+  el.innerHTML = html;
+  chatBody.appendChild(el);
+  if (m.id > lastId) lastId = m.id;
+  scrollBottom(false);
+}
+
+/* ---- send instantly (no page refresh) ---- */
+chatForm.addEventListener('submit', function (e) {
+  e.preventDefault();
+  var body = chatInput.value.trim();
+  var file = chatImage.files && chatImage.files[0];
+  if (!body && !file) return;
+  var fd = new FormData();
+  fd.append('body', body);
+  fd.append('reply_to', replyToInput.value || '');
+  if (file) fd.append('image', file);
+  chatInput.value = '';
+  chatImage.value = '';
+  clearImagePreview();
+  clearReply();
+  fetch(chatForm.action, {
+    method: 'POST',
+    body: fd,
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  }).then(function (r) { return r.json(); }).then(function (d) {
+    if (d && d.ok) { renderMsg(d.message); scrollBottom(true); }
+  }).catch(function () {});
+});
+
+/* ---- live receive ---- */
+function pollMessages() {
+  fetch('{{ url_for("admin_chat_messages", uid=user.id) }}?after=' + lastId, {
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  }).then(function (r) { return r.json(); }).then(function (d) {
+    if (d && d.ok && d.messages && d.messages.length) {
+      d.messages.forEach(renderMsg);
+    }
+  }).catch(function () {});
+}
+setInterval(pollMessages, 2500);
+
+/* ---- image picker preview ---- */
+function clearImagePreview() {
+  var p = document.getElementById('imgPreview');
+  if (p) p.style.display = 'none';
+  var n = document.getElementById('imgName');
+  if (n) n.textContent = '';
+}
+if (chatImage) {
+  chatImage.addEventListener('change', function () {
+    var f = chatImage.files && chatImage.files[0];
+    if (!f) { clearImagePreview(); return; }
+    document.getElementById('imgName').textContent = f.name;
+    document.getElementById('imgPreview').style.display = 'flex';
+  });
+}
+var imgClear = document.getElementById('imgClear');
+if (imgClear) imgClear.addEventListener('click', function () { chatImage.value = ''; clearImagePreview(); });
+
+/* ---- long press action sheet ---- */
+function openSheet(el) {
+  activeMsg = el; document.getElementById('msgSheet').classList.add('open');
+  var mine = el.getAttribute('data-sender') === 'admin';
+  document.querySelector('#msgSheet [data-act="edit"]').style.display = mine ? 'flex' : 'none';
+  document.querySelector('#msgSheet [data-act="delete"]').style.display = mine ? 'flex' : 'none';
+}
+function closeSheet() { document.getElementById('msgSheet').classList.remove('open'); activeMsg = null; }
+function startHold(e) { var el = e.target.closest('.msg-row'); if (!el) return; holdTimer = setTimeout(function () { openSheet(el); }, HOLD_MS); }
+function cancelHold() { clearTimeout(holdTimer); }
+chatBody.addEventListener('mousedown', startHold);
+chatBody.addEventListener('touchstart', startHold, {passive: true});
+['mouseup', 'mouseleave', 'touchend', 'touchmove', 'scroll'].forEach(function (ev) { chatBody.addEventListener(ev, cancelHold, {passive: true}); });
+chatBody.addEventListener('contextmenu', function (e) { var el = e.target.closest('.msg-row'); if (el) { e.preventDefault(); openSheet(el); } });
+document.getElementById('reactRow').addEventListener('click', function (e) {
+  var b = e.target.closest('[data-emoji]'); if (!b || !activeMsg) return;
+  post('/chat/' + activeMsg.getAttribute('data-id') + '/react', {emoji: b.getAttribute('data-emoji')});
+});
+document.querySelectorAll('.sheet-item').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    if (!activeMsg) return;
+    var id = activeMsg.getAttribute('data-id'), body = activeMsg.getAttribute('data-body'), act = btn.getAttribute('data-act');
+    if (act === 'copy') { if (navigator.clipboard) navigator.clipboard.writeText(body); closeSheet(); return; }
+    if (act === 'reply') { replyToInput.value = id; document.getElementById('replyText').textContent = (body || '📷 Image').slice(0, 60); document.getElementById('replyBar').classList.add('open'); chatInput.focus(); closeSheet(); return; }
+    if (act === 'edit') { var v = prompt('Edit message', body); if (v && v.trim()) post('/chat/' + id + '/edit', {body: v.trim()}); closeSheet(); return; }
+    if (act === 'delete') { if (confirm('Delete this message?')) post('/chat/' + id + '/delete', {}); closeSheet(); return; }
+  });
+});
+function post(url, data) {
+  var f = document.getElementById('msgActionForm'); f.action = url; f.innerHTML = '';
+  Object.keys(data).forEach(function (k) { var i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = data[k]; f.appendChild(i); });
+  f.submit();
+}
+function clearReply() { replyToInput.value = ''; document.getElementById('replyBar').classList.remove('open'); }
+scrollBottom(true);
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

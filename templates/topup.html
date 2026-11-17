@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Topup — {{ settings.get('site_name', 'Topupjo') }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <h1><span class="ico ico-gamepad"></span> All Top Up Products</h1>
+    <p>Choose a product, select a package and top up instantly.</p>
+  </div>
+</section>
+
+<div class="container">
+  <div class="filter-bar">
+    <a href="{{ url_for('topup') }}" class="chip {{ 'active' if not active_cat }}">All</a>
+    {% for c in categories %}
+    <a href="{{ url_for('topup', category=c.slug) }}" class="chip {{ 'active' if active_cat and active_cat.id == c.id }}"><span class="ico ico-{{ c.icon|cat_icon }}"></span> {{ c.name }}</a>
+    {% endfor %}
+    <form class="search-form" method="get" action="{{ url_for('topup') }}">
+      {% if active_cat %}<input type="hidden" name="category" value="{{ active_cat.slug }}">{% endif %}
+      <input type="text" name="q" value="{{ q }}" placeholder="Search product...">
+      <button class="btn btn-primary btn-sm" type="submit">Search</button>
+    </form>
+  </div>
+
+  {% if products %}
+  <div class="prod-grid" style="margin-bottom:50px">
+    {% for p in products %}
+    <a href="{{ url_for('product_detail', pid=p.id, slug=p.slug) }}" class="prod-card">
+      <div class="prod-thumb">
+        {% if p.image %}<img src="{{ url_for('static', filename='uploads/' + p.image) }}" alt="{{ p.name }}">
+        {% else %}<span class="ico ico-{{ (p.category.icon if p.category else 'gem')|cat_icon }}"></span>{% endif %}
+        {% if p.badge %}<span class="prod-badge {{ 'gold' if loop.index % 2 == 0 }}">{{ p.badge }}</span>{% endif %}
+      </div>
+      <div class="prod-body">
+        <span class="prod-cat">{{ p.category.name if p.category else 'Topup' }}</span>
+        <h3>{{ p.name }}</h3>
+        <div class="prod-price">
+          <div>
+            <div class="from">Starting from</div>
+            <div class="amount">{{ p.min_price|taka }}</div>
+          </div>
+          <span class="go"><span class="ico ico-arrow"></span></span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty" style="margin-bottom:50px">
+    <div class="empty-ico"><span class="ico ico-search"></span></div>
+    <h3>কোনো প্রোডাক্ট পাওয়া যায়নি</h3>
+    <p>অন্য ক্যাটাগরি বা সার্চ ট্রাই করুন।</p>
+    <a href="{{ url_for('topup') }}" class="btn btn-primary" style="margin-top:14px">View All</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
