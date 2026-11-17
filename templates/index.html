@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.get('site_name', 'Topupjo') }} — {{ settings.get('tagline', 'Game Top Up') }}{% endblock %}
+
+{% block content %}
+<!-- BANNERS (directly below the notice) -->
+{% if banners %}
+<section class="banner-section">
+  <div class="container">
+    <div class="banner-carousel" id="bannerCarousel">
+      {% for b in banners %}
+      <a href="{{ b.link or url_for('topup') }}" class="banner-slide {{ 'active' if loop.first }}" data-index="{{ loop.index0 }}">
+        {% if b.image %}<img src="{{ url_for('static', filename='uploads/' + b.image) }}" alt="{{ b.title }}">{% endif %}
+        <div class="banner-overlay">
+          <h3>{{ b.title }}</h3>
+          <p>{{ b.subtitle }}</p>
+          <span class="banner-cta">Explore <span class="ico ico-arrow"></span></span>
+        </div>
+      </a>
+      {% endfor %}
+      {% if banners|length > 1 %}
+      <button class="banner-nav prev" type="button" aria-label="Previous banner"><span class="ico ico-arrow-left"></span></button>
+      <button class="banner-nav next" type="button" aria-label="Next banner"><span class="ico ico-arrow"></span></button>
+      <div class="banner-dots">
+        {% for b in banners %}<button type="button" class="banner-dot {{ 'active' if loop.first }}" data-i="{{ loop.index0 }}" aria-label="Banner {{ loop.index }}"></button>{% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- CATEGORY PRODUCTS -->
+<section class="section">
+  <div class="container">
+    {% for c in categories %}
+    {% set cprods = c.products|selectattr('active')|list %}
+    {% if cprods %}
+    {% set words = c.name.split() %}
+    <div class="cat-block">
+      <div class="cat-head">
+        <h2 class="cat-title"><span class="w-dark">{{ words[0] }}</span>{% if words|length > 1 %} <span class="w-red">{{ words[1:]|join(' ') }}</span>{% endif %}</h2>
+        <span class="cat-rule"></span>
+      </div>
+      <div class="cat-prod-grid">
+        {% for p in cprods %}
+        <a href="{{ url_for('product_detail', pid=p.id, slug=p.slug) }}" class="gcard">
+          <div class="gcard-img">
+            {% if p.image %}<img src="{{ url_for('static', filename='uploads/' + p.image) }}" alt="{{ p.name }}">
+            {% else %}<span class="ico ico-{{ (p.category.icon if p.category else 'gem')|cat_icon }}"></span>{% endif %}
+          </div>
+          <div class="gcard-name">{{ p.name }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<!-- RECENT ORDERS + TRUST -->
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="recent-grid">
+      <div class="recent-wrap">
+        <div class="recent-card-head">
+          <h2>Recent Orders</h2>
+          <span class="live-pill"><span class="live-dot"></span> Live</span>
+        </div>
+        <div class="recent-feed">
+          {% for o in recent %}
+          {% set nm = o.user.name if o.user else 'Customer' %}
+          <div class="r-item">
+            <div class="r-avatar av-{{ loop.index0 % 6 }}">{{ nm[0]|upper }}</div>
+            <div class="r-body">
+              <div class="r-line1">
+                <span class="r-name">{{ nm }}</span>
+                <span class="r-time">{{ o.created_at|timeago }}</span>
+                {% if o.status == 'completed' %}
+                <span class="r-status st-done"><span class="st-dot"></span>Done</span>
+                {% elif o.status == 'pending' %}
+                <span class="r-status st-pending"><span class="st-dot"></span>Pending</span>
+                {% else %}
+                <span class="r-status st-cancel"><span class="st-dot"></span>Cancelled</span>
+                {% endif %}
+              </div>
+              <div class="r-line2">
+                <span class="r-what">{{ o.product.name if o.product else 'Topup' }}{% if o.package %} · {{ o.package.name }}{% endif %}</span>
+                <span class="r-amount">{{ o.total|taka }}</span>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="empty" style="border:0">No orders yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="trust-col">
+        <div class="trust-card">
+          <div class="ic"><span class="ico ico-bolt"></span></div>
+          <div><h3>Instant Delivery</h3><p>Diamonds delivered within seconds after payment confirmation.</p></div>
+        </div>
+        <div class="trust-card">
+          <div class="ic"><span class="ico ico-shield"></span></div>
+          <div><h3>100% Safe &amp; Secure</h3><p>Your account and payment details are always protected.</p></div>
+        </div>
+        <div class="trust-card">
+          <div class="ic"><span class="ico ico-money"></span></div>
+          <div><h3>Best Price Guarantee</h3><p>Lowest prices in Bangladesh with regular bonus offers.</p></div>
+        </div>
+        <div class="trust-card">
+          <div class="ic"><span class="ico ico-chat"></span></div>
+          <div><h3>24/7 Support</h3><p>Our team is always ready on Telegram to help you.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAYMENTS -->
+{% if payments %}
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="section-head" style="justify-content:center;text-align:center">
+      <div><h2>Easy <span>Payment</span></h2><p>Pay with your favourite local method</p></div>
+    </div>
+    <div class="pay-strip">
+      {% for m in payments %}
+      <div class="pay-pill">
+        {% if m.logo %}
+        <img class="pay-logo" src="{{ url_for('static', filename='uploads/' + m.logo) }}" alt="{{ m.name }}">
+        {% else %}
+        <span class="pay-dot" style="background:{{ m.color }}"></span>
+        {% endif %}
+        <span>{{ m.name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var carousel = document.getElementById('bannerCarousel');
+  if (!carousel) return;
+  var slides = carousel.querySelectorAll('.banner-slide');
+  var dots = carousel.querySelectorAll('.banner-dot');
+  if (slides.length < 2) return;
+  var idx = 0, timer = null, DELAY = 5000;
+
+  function show(i) {
+    idx = (i + slides.length) % slides.length;
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === idx); });
+    dots.forEach(function (d, k) { d.classList.toggle('active', k === idx); });
+  }
+  function next() { show(idx + 1); }
+  function prev() { show(idx - 1); }
+  function start() { stop(); timer = setInterval(next, DELAY); }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+  var nextBtn = carousel.querySelector('.banner-nav.next');
+  var prevBtn = carousel.querySelector('.banner-nav.prev');
+  if (nextBtn) nextBtn.addEventListener('click', function () { next(); start(); });
+  if (prevBtn) prevBtn.addEventListener('click', function () { prev(); start(); });
+  dots.forEach(function (d) {
+    d.addEventListener('click', function () { show(parseInt(d.dataset.i, 10)); start(); });
+  });
+
+  // Swipe left / right to change banner (touch + pointer)
+  var touchStartX = 0, touchStartY = 0, touchActive = false;
+  carousel.addEventListener('touchstart', function (e) {
+    if (!e.touches || !e.touches.length) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchActive = true;
+    stop();
+  }, { passive: true });
+  carousel.addEventListener('touchend', function (e) {
+    if (!touchActive) return;
+    touchActive = false;
+    var t = (e.changedTouches && e.changedTouches[0]) || null;
+    if (!t) { start(); return; }
+    var dx = t.clientX - touchStartX;
+    var dy = t.clientY - touchStartY;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) { next(); } else { prev(); }
+    }
+    start();
+  }, { passive: true });
+  carousel.addEventListener('touchcancel', function () { touchActive = false; start(); }, { passive: true });
+
+  carousel.addEventListener('mouseenter', stop);
+  carousel.addEventListener('mouseleave', start);
+  document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
+  start();
+})();
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
